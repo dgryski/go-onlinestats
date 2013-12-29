@@ -1,4 +1,4 @@
-// Package runningstats provides online, one-pass algorithms for descriptive statistics.
+// Package onlinestats provides online, one-pass algorithms for descriptive statistics.
 /*
 
 The implementation is based on the public domain code available at http://www.johndcook.com/skewness_kurtosis.html .
@@ -6,60 +6,60 @@ The implementation is based on the public domain code available at http://www.jo
 The linear regression code is from http://www.johndcook.com/running_regression.html .
 
 */
-package runningstats
+package onlinestats
 
 import "math"
 
-type Stats struct {
+type Running struct {
 	n              int
 	m1, m2, m3, m4 float64
 }
 
-func NewStats() *Stats {
-	return &Stats{}
+func NewRunning() *Running {
+	return &Running{}
 }
 
-func (s *Stats) Push(x float64) {
+func (r *Running) Push(x float64) {
 
-	n1 := float64(s.n)
-	s.n++
-	delta := x - s.m1
-	delta_n := delta / float64(s.n)
+	n1 := float64(r.n)
+	r.n++
+	delta := x - r.m1
+	delta_n := delta / float64(r.n)
 	delta_n2 := delta_n * delta_n
 	term1 := delta * delta_n * n1
-	s.m1 += delta_n
-	s.m4 += term1*delta_n2*float64(s.n*s.n-3*s.n+3) + 6*delta_n2*s.m2 - 4*delta_n*s.m3
-	s.m3 += term1*delta_n*float64(s.n-2) - 3*delta_n*s.m2
-	s.m2 += term1
+	r.m1 += delta_n
+	r.m4 += term1*delta_n2*float64(r.n*r.n-3*r.n+3) + 6*delta_n2*r.m2 - 4*delta_n*r.m3
+	r.m3 += term1*delta_n*float64(r.n-2) - 3*delta_n*r.m2
+	r.m2 += term1
 }
 
-func (s *Stats) Len() int {
-	return s.n
+func (r *Running) Len() int {
+	return r.n
 }
 
-func (s *Stats) Mean() float64 {
-	return s.m1
+func (r *Running) Mean() float64 {
+	return r.m1
 }
 
-func (s *Stats) Var() float64 {
-	return s.m2 / float64(s.n-1)
+func (r *Running) Var() float64 {
+	return r.m2 / float64(r.n-1)
 }
 
-func (s *Stats) Stddev() float64 {
-	return math.Sqrt(s.Var())
+func (r *Running) Stddev() float64 {
+	return math.Sqrt(r.Var())
 }
 
-func (s *Stats) Skewness() float64 {
-	return math.Sqrt(float64(s.n)) * s.m3 / math.Pow(s.m2, 1.5)
+func (r *Running) Skewness() float64 {
+	return math.Sqrt(float64(r.n)) * r.m3 / math.Pow(r.m2, 1.5)
 }
 
-func (s *Stats) Kurtosis() float64 {
-	return float64(s.n)*s.m4/(s.m2*s.m2) - 3.0
+func (r *Running) Kurtosis() float64 {
+	return float64(r.n)*r.m4/(r.m2*r.m2) - 3.0
 }
 
-func CombineStats(a, b *Stats) *Stats {
+func CombineRunning(a, b *Running) *Running {
 
-	var combined Stats
+	var combined Running
 
 	an := float64(a.n)
 	bn := float64(b.n)
@@ -86,8 +86,8 @@ func CombineStats(a, b *Stats) *Stats {
 }
 
 type Regression struct {
-	xstats Stats
-	ystats Stats
+	xstats Running
+	ystats Running
 	sxy    float64
 	n      int
 }
@@ -125,8 +125,8 @@ func (r *Regression) Correlation() float64 {
 func CombineRegressions(a, b Regression) *Regression {
 	var combined Regression
 
-	combined.xstats = *CombineStats(&a.xstats, &b.xstats)
-	combined.ystats = *CombineStats(&a.ystats, &b.ystats)
+	combined.xstats = *CombineRunning(&a.xstats, &b.xstats)
+	combined.ystats = *CombineRunning(&a.ystats, &b.ystats)
 	combined.n = a.n + b.n
 
 	delta_x := b.xstats.Mean() - a.xstats.Mean()
