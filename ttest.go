@@ -9,6 +9,8 @@ type Stats interface {
 }
 
 // From https://github.com/codahale/ministat/blob/master/src/ministat.c
+
+// TTest implements a Student's t-test.
 func TTest(rs, ds Stats, confidx Confidence) float64 {
 
 	i := ds.Len() + rs.Len() - 2
