@@ -8,38 +8,49 @@ type Stats interface {
 	Len() int
 }
 
-// From https://github.com/codahale/ministat/blob/master/src/ministat.c
+// Welch implements a Welch's t-test.
+func Welch(xs, ys Stats, confidx Confidence) float64 {
 
-// TTest implements a Student's t-test.
-func TTest(rs, ds Stats, confidx Confidence) float64 {
+	xvar := xs.Var()
+	yvar := ys.Var()
 
-	i := ds.Len() + rs.Len() - 2
+	xn := float64(xs.Len())
+	yn := float64(ys.Len())
 
-	var t float64
+	wvar := (xvar/xn + yvar/yn)
 
-	if i > nstudent {
-		t = student[0][confidx]
+	vnum := wvar * wvar
+	vdenom := (xvar*xvar)/(xn*xn*(xn-1)) + (yvar*yvar)/(yn*yn*(yn-1))
+	v := vnum / vdenom
+
+	var tdist float64
+
+	if v > nstudent {
+		tdist = student[0][confidx]
 	} else {
-		t = student[i][confidx]
+		vlower := math.Trunc(v)
+		vfract := v - vlower
+
+		vidx := int(vlower)
+
+		tdist = student[vidx][confidx]
+		// linear approximation
+		tdist += vfract * (student[vidx+1][confidx] - student[vidx][confidx])
 	}
 
-	dn := float64(ds.Len())
-	rn := float64(rs.Len())
+	sampleStdErr := math.Sqrt(wvar)
+	diff := ys.Mean() - xs.Mean()
+	e := tdist * sampleStdErr
 
-	spool := (dn-1)*ds.Var() + (rn-1)*rs.Var()
-	spool /= dn + rn - 2
-	spool = math.Sqrt(spool)
-	s := spool * math.Sqrt(1/dn+1/rn)
-	d := ds.Mean() - rs.Mean()
-	e := t * s
-
-	if math.Abs(d) <= e {
+	if math.Abs(diff) <= e {
 		// no difference
 		return 0
 	}
 
-	return d
+	return diff
 }
+
+// From https://github.com/codahale/ministat/blob/master/src/ministat.c
 
 // Confidence is a confidence level for the Student's t-test
 type Confidence int
@@ -59,7 +70,7 @@ var studentpct = [nconf]float64{80, 90, 95, 98, 99, 99.5}
 
 const nstudent = 100
 
-// +1 because 0 is used for 'more than 100 samples'
+// +1 because 0 is used for 'more than 100 degrees of freedom'
 var student = [nstudent + 1][nconf]float64{
 	/* inf */ {1.282, 1.645, 1.960, 2.326, 2.576, 3.090},
 	/* 1. */ {3.078, 6.314, 12.706, 31.821, 63.657, 318.313},
