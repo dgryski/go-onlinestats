@@ -21,7 +21,14 @@ func Welch(xs, ys Stats, confidx Confidence) float64 {
 
 	vnum := wvar * wvar
 	vdenom := (xvar*xvar)/(xn*xn*(xn-1)) + (yvar*yvar)/(yn*yn*(yn-1))
-	v := vnum / vdenom
+
+	// both have 0 variance, the difference is the difference of the means
+	var v float64
+	if vdenom == 0 {
+		v = xn + yn - 2
+	} else {
+		v = vnum / vdenom
+	}
 
 	var tdist float64
 
