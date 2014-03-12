@@ -67,3 +67,20 @@ func (w *Windowed) Var() float64 {
 func (w *Windowed) Stddev() float64 {
 	return math.Sqrt(w.Var())
 }
+
+// Set sets the current windowed data.  The length is reset, and Push() will start overwriting the first element of the array.
+func (w *Windowed) Set(data []float64) {
+	if w.data != nil {
+		w.data = w.data[:0]
+	}
+
+	w.data = append(w.data, data...)
+
+	w.sum = 0
+	for _, v := range w.data {
+		w.sum += v
+	}
+
+	w.head = 0
+	w.length = len(data)
+}
