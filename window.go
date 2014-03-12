@@ -10,7 +10,6 @@ type Windowed struct {
 
 	length int
 	sum    float64
-	sumsq  float64
 }
 
 func NewWindowed(capacity int) *Windowed {
@@ -33,9 +32,6 @@ func (w *Windowed) Push(n float64) float64 {
 	w.sum -= old
 	w.sum += n
 
-	w.sumsq -= old * old
-	w.sumsq += n * n
-
 	return old
 }
 
@@ -53,8 +49,19 @@ func (w *Windowed) Mean() float64 {
 
 func (w *Windowed) Var() float64 {
 	n := float64(w.Len())
-	// population variance, not sample variance
-	return (w.sumsq - (w.sum*w.sum)/n) / n
+	mean := w.Mean()
+	l := w.Len()
+
+	sum1 := 0.0
+	sum2 := 0.0
+
+	for i := 0; i < l; i++ {
+		xm := w.data[i] - mean
+		sum1 += xm * xm
+		sum2 += xm
+	}
+
+	return (sum1 - (sum2*sum2)/n) / (n - 1)
 }
 
 func (w *Windowed) Stddev() float64 {
