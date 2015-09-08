@@ -175,7 +175,7 @@ func swilkHelper(x []float64,
 			// IF (XX-XI .GT. SMALL) PRINT *,' ANYTHING'
 			sx += xi
 			if i != j {
-				sa += float64(sign(1, i-j)) * a[min(i, j)]
+				sa += float64(sign(1, i-j)) * a[imin(i, j)]
 			}
 			xx = xi
 			j--
@@ -196,7 +196,7 @@ func swilkHelper(x []float64,
 		var asa float64
 		for i := 1; i <= n1; i++ {
 			if i != j {
-				asa = float64(sign(1, i-j))*a[min(i, j)] - sa
+				asa = float64(sign(1, i-j))*a[imin(i, j)] - sa
 			} else {
 				asa = -sa
 			}
@@ -489,10 +489,9 @@ func alnorm(x float64, upper bool) float64 {
 	return fn_val
 }
 
-func min(i, j int) int {
+func imin(i, j int) int {
 	if i < j {
 		return i
 	}
 	return j
-
 }
