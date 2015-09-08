@@ -1,9 +1,9 @@
 package onlinestats
 
 import (
-	"errors"
 	"math"
 	"sort"
+	"strconv"
 )
 
 func SWilk(x []float64) (float64, float64, error) {
@@ -13,17 +13,9 @@ func SWilk(x []float64) (float64, float64, error) {
 	sort.Float64s(data[1:])
 	data[0] = math.NaN()
 
-	ifault := []int{-1}
-
 	length := len(x)
-	w, pw := swilkHelper(data, length, length, length/2, nil, ifault)
-
-	// is there an error?
-	if ifault[0] != 0 && ifault[0] != 2 {
-		return 0, 0, errors.New("swilk fault")
-	}
-
-	return w, pw, nil
+	w, pw, err := swilkHelper(data, length, length, length/2, nil)
+	return w, pw, err
 }
 
 // Calculate the Shapiro-Wilk W test and its significance level
@@ -73,9 +65,6 @@ const (
 * instead of 0 (like Java) to avoid screwing up the algorithm. To pass in 100 data points, declare x[101] and fill elements
 * x[1] through x[100] with data. x[0] will be ignored.
 *
-* You might want to eliminate the ifault parameter completely, and throw Java exceptions instead. I didn't want to change the
-* code that much.
-*
 * @param x
 *                Input; Data set to analyze; 100 points go in x[101] array from x[1] through x[100]
 * @param n
@@ -86,29 +75,31 @@ const (
 *                Input; dunno either
 * @param a
 *                Shapiro-Wilk coefficients.  Can be nil, or pre-computed by swilkCoeffs and passed in.
-* @param ifault
-*                Output; pass in int[1], will contain error code (0 == good) in ifault[0] on return
  */
+
+type SwilkFault int
+
+func (s SwilkFault) Error() string {
+	return "swilk fault " + strconv.Itoa(int(s))
+}
+
 func swilkHelper(x []float64,
 	n int,
 	n1 int,
 	n2 int,
-	a []float64,
-	ifault []int) (w float64, pw float64) {
+	a []float64) (w float64, pw float64, err error) {
 
 	pw = 1.0
 	if w >= 0.0 {
 		w = 1.0
 	}
 	an := float64(n)
-	ifault[0] = 3
 	nn2 := n / 2
 	if n2 < nn2 {
-		return
+		return 0, 0, SwilkFault(3)
 	}
-	ifault[0] = 1
 	if n < 3 {
-		return
+		return 0, 0, SwilkFault(1)
 	}
 
 	if a == nil {
@@ -119,34 +110,29 @@ func swilkHelper(x []float64,
 		return
 	}
 	ncens := n - n1
-	ifault[0] = 4
 	if ncens < 0 || (ncens > 0 && n < 20) {
-		return
+		return 0, 0, SwilkFault(4)
 	}
-	ifault[0] = 5
 	delta := float64(ncens) / an
 	if delta > 0.8 {
-		return
+		return 0, 0, SwilkFault(5)
 	}
 
 	// If W input as negative, calculate significance level of -W
 	var w1, xx float64
 	if w < 0.0 {
 		w1 = 1.0 + w
-		ifault[0] = 0
 	} else {
 
 		// Check for zero range
 
-		ifault[0] = 6
 		range_ := x[n1] - x[1]
 		if range_ < SMALL {
-			return
+			return 0, 0, SwilkFault(6)
 		}
 
 		// Check for correct sort order on range - scaled X
-
-		ifault[0] = 7
+		// TODO(dgryski): did the FORTRAN code puke on out-of-order X ? with ifault=7 ?
 		xx = x[1] / range_
 		sx := xx
 		sa := -a[1]
@@ -161,13 +147,11 @@ func swilkHelper(x []float64,
 			xx = xi
 			j--
 		}
-		ifault[0] = 0
 		if n > 5000 {
-			ifault[0] = 2
+			return 0, 0, SwilkFault(2)
 		}
 
 		// Calculate W statistic as squared correlation between data and coefficients
-
 		sa /= float64(n1)
 		sx /= float64(n1)
 		ssa := 0.0
@@ -200,7 +184,7 @@ func swilkHelper(x []float64,
 
 	if n == 3 {
 		pw = PI6 * (math.Asin(math.Sqrt(w)) - STQR)
-		return
+		return w, pw, nil
 	}
 	y := math.Log(w1)
 	xx = math.Log(an)
@@ -210,7 +194,7 @@ func swilkHelper(x []float64,
 		gamma := poly(G, 2, an)
 		if y >= gamma {
 			pw = SMALL
-			return
+			return w, pw, nil
 		}
 		y = -math.Log(gamma - y)
 		m = poly(C3, 4, an)
@@ -239,7 +223,7 @@ func swilkHelper(x []float64,
 	}
 	pw = alnorm((y-m)/s, UPPER)
 
-	return w, pw
+	return w, pw, nil
 }
 
 // Precomputes the coefficients array a for SWilk
