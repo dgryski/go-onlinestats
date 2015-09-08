@@ -85,7 +85,7 @@ const (
 * @param n2
 *                Input; dunno either
 * @param a
-*                Output when init[0] == false, Input when init[0] == true; holds computed test coefficients
+*                Shapiro-Wilk coefficients.  Can be nil, or pre-computed by swilkCoeffs and passed in.
 * @param ifault
 *                Output; pass in int[1], will contain error code (0 == good) in ifault[0] on return
  */
@@ -112,7 +112,7 @@ func swilkHelper(x []float64,
 	}
 
 	if a == nil {
-		a = swilkCoeffs(n)
+		a = SwilkCoeffs(n)
 	}
 
 	if n1 < 3 {
@@ -242,7 +242,8 @@ func swilkHelper(x []float64,
 	return w, pw
 }
 
-func swilkCoeffs(n int) []float64 {
+// Precomputes the coefficients array a for SWilk
+func SwilkCoeffs(n int) []float64 {
 
 	a := make([]float64, n+1)
 
