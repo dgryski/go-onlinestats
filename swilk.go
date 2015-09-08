@@ -13,20 +13,17 @@ func SWilk(x []float64) (float64, float64, error) {
 	sort.Float64s(data[1:])
 	data[0] = math.NaN()
 
-	w := make([]float64, 1)
-	pw := make([]float64, 1)
-
 	ifault := []int{-1}
 
 	length := len(x)
-	swilkHelper(data, length, length, length/2, nil, w, pw, ifault)
+	w, pw := swilkHelper(data, length, length, length/2, nil, ifault)
 
 	// is there an error?
 	if ifault[0] != 0 && ifault[0] != 2 {
 		return 0, 0, errors.New("swilk fault")
 	}
 
-	return w[0], pw[0], nil
+	return w, pw, nil
 }
 
 // Calculate the Shapiro-Wilk W test and its significance level
@@ -67,57 +64,41 @@ const (
 )
 
 /**
- * ALGORITHM AS R94 APPL. STATIST. (1995) VOL.44, NO.4
- *
- * Calculates Shapiro-Wilk normality test and P-value for sample sizes 3 <= n <= 5000 . Handles censored or uncensored data.
- * Corrects AS 181, which was found to be inaccurate for n > 50.
- *
- * NOTE: Semi-strange porting kludge alert. FORTRAN allows subroutine arguments to be modified by the called routine (passed by
- * reference, not value), and the original code for this routine makes use of that feature to return multiple results. To avoid
- * changing the code any more than necessary, I've used Java arrays to simulate this pass-by-reference feature. Specifically,
- * in the original code w, pw, and ifault are output results, not input parameters. Pass in double[1] arrays for w and pw, and
- * an int[1] array for ifault, and extract the computed values from the [0] element on return. The argument init is both input
- * and output; use a boolean[1] array and initialize [0] to false before the first call. The routine will update the value to
- * true to record that initialization has been performed, to speed up subsequent calls on the same data set. Note that although
- * the contents of a[] will be computed by the routine on the first call, the caller must still allocate the array space and
- * pass the unfilled array in to the subroutine. The routine will set the contents but not allocate the space.
- *
- * As described above with the constants, the data arrays x[] and a[] are referenced with a base element of 1 (like FORTRAN)
- * instead of 0 (like Java) to avoid screwing up the algorithm. To pass in 100 data points, declare x[101] and fill elements
- * x[1] through x[100] with data. x[0] will be ignored.
- *
- * You might want to eliminate the ifault parameter completely, and throw Java exceptions instead. I didn't want to change the
- * code that much.
- *
- * @param x
- *                Input; Data set to analyze; 100 points go in x[101] array from x[1] through x[100]
- * @param n
- *                Input; Number of data points in x
- * @param n1
- *                Input; dunno
- * @param n2
- *                Input; dunno either
- * @param a
- *                Output when init[0] == false, Input when init[0] == true; holds computed test coefficients
- * @param w
- *                Output; pass in double[1], will contain result in w[0] on return
- * @param pw
- *                Output; pass in double[1], will contain result in pw[0] on return
- * @param ifault
- *                Output; pass in int[1], will contain error code (0 == good) in ifault[0] on return
+* ALGORITHM AS R94 APPL. STATIST. (1995) VOL.44, NO.4
+*
+* Calculates Shapiro-Wilk normality test and P-value for sample sizes 3 <= n <= 5000 . Handles censored or uncensored data.
+* Corrects AS 181, which was found to be inaccurate for n > 50.
+*
+* As described above with the constants, the data arrays x[] and a[] are referenced with a base element of 1 (like FORTRAN)
+* instead of 0 (like Java) to avoid screwing up the algorithm. To pass in 100 data points, declare x[101] and fill elements
+* x[1] through x[100] with data. x[0] will be ignored.
+*
+* You might want to eliminate the ifault parameter completely, and throw Java exceptions instead. I didn't want to change the
+* code that much.
+*
+* @param x
+*                Input; Data set to analyze; 100 points go in x[101] array from x[1] through x[100]
+* @param n
+*                Input; Number of data points in x
+* @param n1
+*                Input; dunno
+* @param n2
+*                Input; dunno either
+* @param a
+*                Output when init[0] == false, Input when init[0] == true; holds computed test coefficients
+* @param ifault
+*                Output; pass in int[1], will contain error code (0 == good) in ifault[0] on return
  */
 func swilkHelper(x []float64,
 	n int,
 	n1 int,
 	n2 int,
 	a []float64,
-	w []float64,
-	pw []float64,
-	ifault []int) {
+	ifault []int) (w float64, pw float64) {
 
-	pw[0] = 1.0
-	if w[0] >= 0.0 {
-		w[0] = 1.0
+	pw = 1.0
+	if w >= 0.0 {
+		w = 1.0
 	}
 	an := float64(n)
 	ifault[0] = 3
@@ -150,8 +131,8 @@ func swilkHelper(x []float64,
 
 	// If W input as negative, calculate significance level of -W
 	var w1, xx float64
-	if w[0] < 0.0 {
-		w1 = 1.0 + w[0]
+	if w < 0.0 {
+		w1 = 1.0 + w
 		ifault[0] = 0
 	} else {
 
@@ -213,12 +194,12 @@ func swilkHelper(x []float64,
 		ssassx := math.Sqrt(ssa * ssx)
 		w1 = (ssassx - sax) * (ssassx + sax) / (ssa * ssx)
 	}
-	w[0] = 1.0 - w1
+	w = 1.0 - w1
 
 	// Calculate significance level for W (exact for N=3)
 
 	if n == 3 {
-		pw[0] = PI6 * (math.Asin(math.Sqrt(w[0])) - STQR)
+		pw = PI6 * (math.Asin(math.Sqrt(w)) - STQR)
 		return
 	}
 	y := math.Log(w1)
@@ -228,7 +209,7 @@ func swilkHelper(x []float64,
 	if n <= 11 {
 		gamma := poly(G, 2, an)
 		if y >= gamma {
-			pw[0] = SMALL
+			pw = SMALL
 			return
 		}
 		y = -math.Log(gamma - y)
@@ -256,7 +237,9 @@ func swilkHelper(x []float64,
 		m += zbar * s
 		s *= zsd
 	}
-	pw[0] = alnorm((y-m)/s, UPPER)
+	pw = alnorm((y-m)/s, UPPER)
+
+	return w, pw
 }
 
 func swilkCoeffs(n int) []float64 {
