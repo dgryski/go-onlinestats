@@ -13,15 +13,13 @@ func SWilk(x []float64) (float64, float64, error) {
 	sort.Float64s(data[1:])
 	data[0] = math.NaN()
 
-	init := make([]bool, 1)
-	a := make([]float64, len(data))
 	w := make([]float64, 1)
 	pw := make([]float64, 1)
 
 	ifault := []int{-1}
 
 	length := len(x)
-	swilkHelper(init, data, length, length, length/2, a, w, pw, ifault)
+	swilkHelper(data, length, length, length/2, nil, w, pw, ifault)
 
 	// is there an error?
 	if ifault[0] != 0 && ifault[0] != 2 {
@@ -91,8 +89,6 @@ const (
  * You might want to eliminate the ifault parameter completely, and throw Java exceptions instead. I didn't want to change the
  * code that much.
  *
- * @param init
- *                Input & output; pass in boolean[1], initialize to false before first call, routine will set to true
  * @param x
  *                Input; Data set to analyze; 100 points go in x[101] array from x[1] through x[100]
  * @param n
@@ -110,7 +106,7 @@ const (
  * @param ifault
  *                Output; pass in int[1], will contain error code (0 == good) in ifault[0] on return
  */
-func swilkHelper(init []bool, x []float64,
+func swilkHelper(x []float64,
 	n int,
 	n1 int,
 	n2 int,
@@ -134,44 +130,10 @@ func swilkHelper(init []bool, x []float64,
 		return
 	}
 
-	// If INIT is false, calculates coefficients for the test
-
-	if !init[0] {
-		if n == 3 {
-			a[1] = SQRTH
-		} else {
-			an25 := an + 0.25
-			summ2 := 0.0
-			for i := 1; i <= n2; i++ {
-				a[i] = ppnd((float64(i) - TH) / an25)
-				summ2 += a[i] * a[i]
-			}
-			summ2 *= 2.0
-			ssumm2 := math.Sqrt(summ2)
-			rsn := 1.0 / math.Sqrt(an)
-			a1 := poly(C1, 6, rsn) - a[1]/ssumm2
-
-			// Normalize coefficients
-
-			var i1 int
-			var fac float64
-			if n > 5 {
-				i1 = 3
-				a2 := -a[2]/ssumm2 + poly(C2, 6, rsn)
-				fac = math.Sqrt((summ2 - 2.0*a[1]*a[1] - 2.0*a[2]*a[2]) / (1.0 - 2.0*a1*a1 - 2.0*a2*a2))
-				a[1] = a1
-				a[2] = a2
-			} else {
-				i1 = 2
-				fac = math.Sqrt((summ2 - 2.0*a[1]*a[1]) / (1.0 - 2.0*a1*a1))
-				a[1] = a1
-			}
-			for i := i1; i <= nn2; i++ {
-				a[i] = -a[i] / fac
-			}
-		}
-		init[0] = true
+	if a == nil {
+		a = swilkCoeffs(n)
 	}
+
 	if n1 < 3 {
 		return
 	}
@@ -295,6 +257,51 @@ func swilkHelper(init []bool, x []float64,
 		s *= zsd
 	}
 	pw[0] = alnorm((y-m)/s, UPPER)
+}
+
+func swilkCoeffs(n int) []float64 {
+
+	a := make([]float64, n+1)
+
+	an := float64(n)
+
+	n2 := n / 2
+
+	if n == 3 {
+		a[1] = SQRTH
+	} else {
+		an25 := an + 0.25
+		summ2 := 0.0
+		for i := 1; i <= n2; i++ {
+			a[i] = ppnd((float64(i) - TH) / an25)
+			summ2 += a[i] * a[i]
+		}
+		summ2 *= 2.0
+		ssumm2 := math.Sqrt(summ2)
+		rsn := 1.0 / math.Sqrt(an)
+		a1 := poly(C1, 6, rsn) - a[1]/ssumm2
+
+		// Normalize coefficients
+
+		var i1 int
+		var fac float64
+		if n > 5 {
+			i1 = 3
+			a2 := -a[2]/ssumm2 + poly(C2, 6, rsn)
+			fac = math.Sqrt((summ2 - 2.0*a[1]*a[1] - 2.0*a[2]*a[2]) / (1.0 - 2.0*a1*a1 - 2.0*a2*a2))
+			a[1] = a1
+			a[2] = a2
+		} else {
+			i1 = 2
+			fac = math.Sqrt((summ2 - 2.0*a[1]*a[1]) / (1.0 - 2.0*a1*a1))
+			a[1] = a1
+		}
+		for i := i1; i <= n2; i++ {
+			a[i] = -a[i] / fac
+		}
+	}
+
+	return a
 }
 
 /**
