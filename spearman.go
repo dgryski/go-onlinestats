@@ -49,7 +49,8 @@ func crank(w []float64) float64 {
 	return s
 }
 
-func Spearman(data1, data2 []float64) (float64, float64) {
+// Spearman returns the rank correlation coefficient between data1 and data2, and the associated p-value
+func Spearman(data1, data2 []float64) (rs float64, p float64) {
 	n := len(data1)
 	wksp1, wksp2 := make([]float64, n), make([]float64, n)
 	copy(wksp1, data1)
@@ -69,19 +70,15 @@ func Spearman(data1, data2 []float64) (float64, float64) {
 	en3n := en*en*en - en
 
 	fac := (1.0 - sf/en3n) * (1.0 - sg/en3n)
+	rs = (1.0 - (6.0/en3n)*(d+(sf+sg)/12.0)) / math.Sqrt(fac)
 
-	rs := (1.0 - (6.0/en3n)*(d+(sf+sg)/12.0)) / math.Sqrt(fac)
-	fac = (rs + 1.0) * (1.0 - rs)
-	var probrs float64
-	if fac > 0.0 {
+	if fac = (rs + 1.0) * (1.0 - rs); fac > 0 {
 		t := rs * math.Sqrt((en-2.0)/fac)
 		df := en - 2.0
-		probrs = mathx.BetaInc(df/(df+t*t), 0.5*df, 0.5)
-	} else {
-		probrs = 0.0
+		p = mathx.BetaInc(df/(df+t*t), 0.5*df, 0.5)
 	}
 
-	return rs, probrs
+	return rs, p
 }
 
 func sqr(x float64) float64 { return x * x }
