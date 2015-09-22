@@ -14,7 +14,7 @@ func SWilk(x []float64) (float64, float64, error) {
 	data[0] = math.NaN()
 
 	length := len(x)
-	w, pw, err := swilkHelper(data, length, length, length/2, nil)
+	w, pw, err := swilkHelper(data, length, nil)
 	return w, pw, err
 }
 
@@ -58,7 +58,7 @@ const (
 /**
 * ALGORITHM AS R94 APPL. STATIST. (1995) VOL.44, NO.4
 *
-* Calculates Shapiro-Wilk normality test and P-value for sample sizes 3 <= n <= 5000 . Handles censored or uncensored data.
+* Calculates Shapiro-Wilk normality test and P-value for sample sizes 3 <= n <= 5000 .
 * Corrects AS 181, which was found to be inaccurate for n > 50.
 *
 * As described above with the constants, the data arrays x[] and a[] are referenced with a base element of 1 (like FORTRAN)
@@ -69,10 +69,6 @@ const (
 *                Input; Data set to analyze; 100 points go in x[101] array from x[1] through x[100]
 * @param n
 *                Input; Number of data points in x
-* @param n1
-*                Input; dunno
-* @param n2
-*                Input; dunno either
 * @param a
 *                Shapiro-Wilk coefficients.  Can be nil, or pre-computed by swilkCoeffs and passed in.
  */
@@ -83,21 +79,17 @@ func (s SwilkFault) Error() string {
 	return "swilk fault " + strconv.Itoa(int(s))
 }
 
-func swilkHelper(x []float64,
-	n int,
-	n1 int,
-	n2 int,
-	a []float64) (w float64, pw float64, err error) {
+func swilkHelper(x []float64, n int, a []float64) (w float64, pw float64, err error) {
+
+	if n > 5000 {
+		return 0, 0, SwilkFault(2)
+	}
 
 	pw = 1.0
 	if w >= 0.0 {
 		w = 1.0
 	}
 	an := float64(n)
-	nn2 := n / 2
-	if n2 < nn2 {
-		return 0, 0, SwilkFault(3)
-	}
 	if n < 3 {
 		return 0, 0, SwilkFault(1)
 	}
@@ -106,16 +98,8 @@ func swilkHelper(x []float64,
 		a = SwilkCoeffs(n)
 	}
 
-	if n1 < 3 {
+	if n < 3 {
 		return
-	}
-	ncens := n - n1
-	if ncens < 0 || (ncens > 0 && n < 20) {
-		return 0, 0, SwilkFault(4)
-	}
-	delta := float64(ncens) / an
-	if delta > 0.8 {
-		return 0, 0, SwilkFault(5)
 	}
 
 	// If W input as negative, calculate significance level of -W
@@ -126,7 +110,7 @@ func swilkHelper(x []float64,
 
 		// Check for zero range
 
-		range_ := x[n1] - x[1]
+		range_ := x[n] - x[1]
 		if range_ < SMALL {
 			return 0, 0, SwilkFault(6)
 		}
@@ -137,7 +121,7 @@ func swilkHelper(x []float64,
 		sx := xx
 		sa := -a[1]
 		j := n - 1
-		for i := 2; i <= n1; i++ {
+		for i := 2; i <= n; i++ {
 			xi := x[i] / range_
 			// IF (XX-XI .GT. SMALL) PRINT *,' ANYTHING'
 			sx += xi
@@ -147,19 +131,16 @@ func swilkHelper(x []float64,
 			xx = xi
 			j--
 		}
-		if n > 5000 {
-			return 0, 0, SwilkFault(2)
-		}
 
 		// Calculate W statistic as squared correlation between data and coefficients
-		sa /= float64(n1)
-		sx /= float64(n1)
+		sa /= float64(n)
+		sx /= float64(n)
 		ssa := 0.0
 		ssx := 0.0
 		sax := 0.0
 		j = n
 		var asa float64
-		for i := 1; i <= n1; i++ {
+		for i := 1; i <= n; i++ {
 			if i != j {
 				asa = float64(sign(1, i-j))*a[imin(i, j)] - sa
 			} else {
@@ -202,24 +183,6 @@ func swilkHelper(x []float64,
 	} else {
 		m = poly(C5, 4, xx)
 		s = math.Exp(poly(C6, 3, xx))
-	}
-	if ncens > 0 {
-
-		// Censoring by proportion NCENS/N. Calculate mean and sd of normal equivalent deviate of W.
-		ld := -math.Log(delta)
-		bf := 1.0 + xx*BF1
-		z90f := Z90 + bf*math.Pow(poly(C7, 2, math.Pow(XX90, xx)), ld)
-		z95f := Z95 + bf*math.Pow(poly(C8, 2, math.Pow(XX95, xx)), ld)
-		z99f := Z99 + bf*math.Pow(poly(C9, 2, xx), ld)
-
-		// Regress Z90F,...,Z99F on normal deviates Z90,...,Z99 to get
-		// pseudo-mean and pseudo-sd of z as the slope and intercept
-
-		zfm := (z90f + z95f + z99f) / 3.0
-		zsd := (Z90*(z90f-zfm) + Z95*(z95f-zfm) + Z99*(z99f-zfm)) / ZSS
-		zbar := zfm - zsd*ZM
-		m += zbar * s
-		s *= zsd
 	}
 	pw = alnorm((y-m)/s, UPPER)
 
@@ -428,10 +391,6 @@ const (
  *
  * Evaluates the tail area of the standardised normal curve from x to infinity if upper is true or from minus infinity to x if
  * upper is false.
- *
- * @param x
- * @param upper
- * @return
  */
 func alnorm(x float64, upper bool) float64 {
 	up := upper
