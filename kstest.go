@@ -14,14 +14,22 @@ import (
 // p-value for the null hypothesis that the two sets come from the same distribution.
 func KS(data1, data2 []float64) float64 {
 
+	sort.Float64s(data1)
+	sort.Float64s(data2)
+
+	for math.IsNaN(data1[0]) {
+		data1 = data1[1:]
+	}
+
+	for math.IsNaN(data2[0]) {
+		data2 = data2[1:]
+	}
+
 	n1, n2 := len(data1), len(data2)
 	en1, en2 := float64(n1), float64(n2)
 
 	var d float64
 	var fn1, fn2 float64
-
-	sort.Float64s(data1)
-	sort.Float64s(data2)
 
 	j1, j2 := 0, 0
 	for j1 < n1 && j2 < n2 {
