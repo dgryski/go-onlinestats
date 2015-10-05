@@ -8,14 +8,17 @@ func Pearson(a, b []float64) float64 {
 		panic("len(a) != len(b)")
 	}
 
-	n := float64(len(a))
-
 	var abar, bbar float64
+	var n int
 	for i := range a {
-		abar += a[i]
-		bbar += b[i]
+		if !math.IsNaN(a[i]) && !math.IsNaN(b[i]) {
+			abar += a[i]
+			bbar += b[i]
+			n++
+		}
 	}
-	abar, bbar = abar/n, bbar/n
+	nf := float64(n)
+	abar, bbar = abar/nf, bbar/nf
 
 	var numerator float64
 	var sumAA, sumBB float64
