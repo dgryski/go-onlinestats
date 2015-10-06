@@ -24,9 +24,11 @@ func Pearson(a, b []float64) float64 {
 	var sumAA, sumBB float64
 
 	for i := range a {
-		numerator += (a[i] - abar) * (b[i] - bbar)
-		sumAA += (a[i] - abar) * (a[i] - abar)
-		sumBB += (b[i] - bbar) * (b[i] - bbar)
+		if !math.IsNaN(a[i]) && !math.IsNaN(b[i]) {
+			numerator += (a[i] - abar) * (b[i] - bbar)
+			sumAA += (a[i] - abar) * (a[i] - abar)
+			sumBB += (b[i] - bbar) * (b[i] - bbar)
+		}
 	}
 
 	return numerator / (math.Sqrt(sumAA) * math.Sqrt(sumBB))
