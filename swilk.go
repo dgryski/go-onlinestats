@@ -27,32 +27,32 @@ func SWilk(x []float64) (float64, float64, error) {
  * (which would inevitably introduce pervasive, subtle bugs) the referenced arrays are padded with an unused 0th
  * element, and the algorithm is ported so as to continue accessing from [1] through [length].
  */
-var C1 = []float64{math.NaN(), 0.0E0, 0.221157E0, -0.147981E0, -0.207119E1, 0.4434685E1, -0.2706056E1}
-var C2 = []float64{math.NaN(), 0.0E0, 0.42981E-1, -0.293762E0, -0.1752461E1, 0.5682633E1, -0.3582633E1}
-var C3 = []float64{math.NaN(), 0.5440E0, -0.39978E0, 0.25054E-1, -0.6714E-3}
-var C4 = []float64{math.NaN(), 0.13822E1, -0.77857E0, 0.62767E-1, -0.20322E-2}
-var C5 = []float64{math.NaN(), -0.15861E1, -0.31082E0, -0.83751E-1, 0.38915E-2}
-var C6 = []float64{math.NaN(), -0.4803E0, -0.82676E-1, 0.30302E-2}
-var C7 = []float64{math.NaN(), 0.164E0, 0.533E0}
-var C8 = []float64{math.NaN(), 0.1736E0, 0.315E0}
-var C9 = []float64{math.NaN(), 0.256E0, -0.635E-2}
-var G = []float64{math.NaN(), -0.2273E1, 0.459E0}
+var c1 = []float64{math.NaN(), 0.0E0, 0.221157E0, -0.147981E0, -0.207119E1, 0.4434685E1, -0.2706056E1}
+var c2 = []float64{math.NaN(), 0.0E0, 0.42981E-1, -0.293762E0, -0.1752461E1, 0.5682633E1, -0.3582633E1}
+var c3 = []float64{math.NaN(), 0.5440E0, -0.39978E0, 0.25054E-1, -0.6714E-3}
+var c4 = []float64{math.NaN(), 0.13822E1, -0.77857E0, 0.62767E-1, -0.20322E-2}
+var c5 = []float64{math.NaN(), -0.15861E1, -0.31082E0, -0.83751E-1, 0.38915E-2}
+var c6 = []float64{math.NaN(), -0.4803E0, -0.82676E-1, 0.30302E-2}
+var c7 = []float64{math.NaN(), 0.164E0, 0.533E0}
+var c8 = []float64{math.NaN(), 0.1736E0, 0.315E0}
+var c9 = []float64{math.NaN(), 0.256E0, -0.635E-2}
+var g = []float64{math.NaN(), -0.2273E1, 0.459E0}
 
 const (
-	Z90   = 0.12816E1
-	Z95   = 0.16449E1
-	Z99   = 0.23263E1
-	ZM    = 0.17509E1
-	ZSS   = 0.56268E0
-	BF1   = 0.8378E0
-	XX90  = 0.556E0
-	XX95  = 0.622E0
-	SQRTH = 0.70711E0
-	TH    = 0.375E0
-	SMALL = 1E-19
-	PI6   = 0.1909859E1
-	STQR  = 0.1047198E1
-	UPPER = true
+	z90   = 0.12816E1
+	z95   = 0.16449E1
+	z99   = 0.23263E1
+	zm    = 0.17509E1
+	zss   = 0.56268E0
+	bf1   = 0.8378E0
+	xx90  = 0.556E0
+	xx95  = 0.622E0
+	sqrth = 0.70711E0
+	th    = 0.375E0
+	small = 1E-19
+	pi6   = 0.1909859E1
+	stqr  = 0.1047198E1
+	upper = true
 )
 
 /**
@@ -111,7 +111,7 @@ func swilkHelper(x []float64, n int, a []float64) (w float64, pw float64, err er
 		// Check for zero range
 
 		range_ := x[n] - x[1]
-		if range_ < SMALL {
+		if range_ < small {
 			return 0, 0, SwilkFault(6)
 		}
 
@@ -164,7 +164,7 @@ func swilkHelper(x []float64, n int, a []float64) (w float64, pw float64, err er
 	// Calculate significance level for W (exact for N=3)
 
 	if n == 3 {
-		pw = PI6 * (math.Asin(math.Sqrt(w)) - STQR)
+		pw = pi6 * (math.Asin(math.Sqrt(w)) - stqr)
 		return w, pw, nil
 	}
 	y := math.Log(w1)
@@ -172,19 +172,19 @@ func swilkHelper(x []float64, n int, a []float64) (w float64, pw float64, err er
 	m := 0.0
 	s := 1.0
 	if n <= 11 {
-		gamma := poly(G, 2, an)
+		gamma := poly(g, 2, an)
 		if y >= gamma {
-			pw = SMALL
+			pw = small
 			return w, pw, nil
 		}
 		y = -math.Log(gamma - y)
-		m = poly(C3, 4, an)
-		s = math.Exp(poly(C4, 4, an))
+		m = poly(c3, 4, an)
+		s = math.Exp(poly(c4, 4, an))
 	} else {
-		m = poly(C5, 4, xx)
-		s = math.Exp(poly(C6, 3, xx))
+		m = poly(c5, 4, xx)
+		s = math.Exp(poly(c6, 3, xx))
 	}
-	pw = alnorm((y-m)/s, UPPER)
+	pw = alnorm((y-m)/s, upper)
 
 	return w, pw, nil
 }
@@ -199,18 +199,18 @@ func SwilkCoeffs(n int) []float64 {
 	n2 := n / 2
 
 	if n == 3 {
-		a[1] = SQRTH
+		a[1] = sqrth
 	} else {
 		an25 := an + 0.25
 		summ2 := 0.0
 		for i := 1; i <= n2; i++ {
-			a[i] = ppnd((float64(i) - TH) / an25)
+			a[i] = ppnd((float64(i) - th) / an25)
 			summ2 += a[i] * a[i]
 		}
 		summ2 *= 2.0
 		ssumm2 := math.Sqrt(summ2)
 		rsn := 1.0 / math.Sqrt(an)
-		a1 := poly(C1, 6, rsn) - a[1]/ssumm2
+		a1 := poly(c1, 6, rsn) - a[1]/ssumm2
 
 		// Normalize coefficients
 
@@ -218,7 +218,7 @@ func SwilkCoeffs(n int) []float64 {
 		var fac float64
 		if n > 5 {
 			i1 = 3
-			a2 := -a[2]/ssumm2 + poly(C2, 6, rsn)
+			a2 := -a[2]/ssumm2 + poly(c2, 6, rsn)
 			fac = math.Sqrt((summ2 - 2.0*a[1]*a[1] - 2.0*a[2]*a[2]) / (1.0 - 2.0*a1*a1 - 2.0*a2*a2))
 			a[1] = a1
 			a[2] = a2
@@ -260,34 +260,34 @@ func sign(x int, y int) int {
 
 // Coefficients for P close to 0.5
 const (
-	A0_p = 3.3871327179E+00
-	A1_p = 5.0434271938E+01
-	A2_p = 1.5929113202E+02
-	A3_p = 5.9109374720E+01
-	B1_p = 1.7895169469E+01
-	B2_p = 7.8757757664E+01
-	B3_p = 6.7187563600E+01
+	a0_p = 3.3871327179E+00
+	a1_p = 5.0434271938E+01
+	a2_p = 1.5929113202E+02
+	a3_p = 5.9109374720E+01
+	b1_p = 1.7895169469E+01
+	b2_p = 7.8757757664E+01
+	b3_p = 6.7187563600E+01
 
 	// Coefficients for P not close to 0, 0.5 or 1 (names changed to avoid conflict with swilk())
-	C0_p = 1.4234372777E+00
-	C1_p = 2.7568153900E+00
-	C2_p = 1.3067284816E+00
-	C3_p = 1.7023821103E-01
-	D1_p = 7.3700164250E-01
-	D2_p = 1.2021132975E-01
+	c0_p = 1.4234372777E+00
+	c1_p = 2.7568153900E+00
+	c2_p = 1.3067284816E+00
+	c3_p = 1.7023821103E-01
+	d1_p = 7.3700164250E-01
+	d2_p = 1.2021132975E-01
 
 	// Coefficients for P near 0 or 1.
-	E0_p = 6.6579051150E+00
-	E1_p = 3.0812263860E+00
-	E2_p = 4.2868294337E-01
-	E3_p = 1.7337203997E-02
-	F1_p = 2.4197894225E-01
-	F2_p = 1.2258202635E-02
+	e0_p = 6.6579051150E+00
+	e1_p = 3.0812263860E+00
+	e2_p = 4.2868294337E-01
+	e3_p = 1.7337203997E-02
+	f1_p = 2.4197894225E-01
+	f2_p = 1.2258202635E-02
 
-	SPLIT1 = 0.425
-	SPLIT2 = 5.0
-	CONST1 = 0.180625
-	CONST2 = 1.6
+	split1 = 0.425
+	split2 = 5.0
+	const1 = 0.180625
+	const2 = 1.6
 )
 
 /**
@@ -301,9 +301,9 @@ const (
 func ppnd(p float64) float64 {
 	q := p - 0.5
 	var r float64
-	if math.Abs(q) <= SPLIT1 {
-		r = CONST1 - q*q
-		return q * (((A3_p*r+A2_p)*r+A1_p)*r + A0_p) / (((B3_p*r+B2_p)*r+B1_p)*r + 1.0)
+	if math.Abs(q) <= split1 {
+		r = const1 - q*q
+		return q * (((a3_p*r+a2_p)*r+a1_p)*r + a0_p) / (((b3_p*r+b2_p)*r+b1_p)*r + 1.0)
 	} else {
 		if q < 0.0 {
 			r = p
@@ -315,12 +315,12 @@ func ppnd(p float64) float64 {
 		}
 		r = math.Sqrt(-math.Log(r))
 		var normal_dev float64
-		if r <= SPLIT2 {
-			r -= CONST2
-			normal_dev = (((C3_p*r+C2_p)*r+C1_p)*r + C0_p) / ((D2_p*r+D1_p)*r + 1.0)
+		if r <= split2 {
+			r -= const2
+			normal_dev = (((c3_p*r+c2_p)*r+c1_p)*r + c0_p) / ((d2_p*r+d1_p)*r + 1.0)
 		} else {
-			r -= SPLIT2
-			normal_dev = (((E3_p*r+E2_p)*r+E1_p)*r + E0_p) / ((F2_p*r+F1_p)*r + 1.0)
+			r -= split2
+			normal_dev = (((e3_p*r+e2_p)*r+e1_p)*r + e0_p) / ((f2_p*r+f1_p)*r + 1.0)
 		}
 		if q < 0.0 {
 			normal_dev = -normal_dev
@@ -359,31 +359,31 @@ func poly(c []float64, nord int, x float64) float64 {
 
 // Constants & polynomial coefficients for alnorm(), slightly renamed to avoid conflicts.
 const (
-	CON_a    = 1.28
-	LTONE_a  = 7.0
-	UTZERO_a = 18.66
-	P_a      = 0.398942280444
-	Q_a      = 0.39990348504
-	R_a      = 0.398942280385
-	A1_a     = 5.75885480458
-	A2_a     = 2.62433121679
-	A3_a     = 5.92885724438
+	con_a    = 1.28
+	ltone_a  = 7.0
+	utzero_a = 18.66
+	p_a      = 0.398942280444
+	q_a      = 0.39990348504
+	r_a      = 0.398942280385
+	a1_a     = 5.75885480458
+	a2_a     = 2.62433121679
+	a3_a     = 5.92885724438
 
-	B1_a = -29.8213557807
-	B2_a = 48.6959930692
+	b1_a = -29.8213557807
+	b2_a = 48.6959930692
 
-	C1_a = -3.8052E-8
-	C2_a = 3.98064794E-4
-	C3_a = -0.151679116635
-	C4_a = 4.8385912808
-	C5_a = 0.742380924027
-	C6_a = 3.99019417011
+	c1_a = -3.8052E-8
+	c2_a = 3.98064794E-4
+	c3_a = -0.151679116635
+	c4_a = 4.8385912808
+	c5_a = 0.742380924027
+	c6_a = 3.99019417011
 
-	D1_a = 1.00000615302
-	D2_a = 1.98615381364
-	D3_a = 5.29330324926
-	D4_a = -15.1508972451
-	D5_a = 30.789933034
+	d1_a = 1.00000615302
+	d2_a = 1.98615381364
+	d3_a = 5.29330324926
+	d4_a = -15.1508972451
+	d5_a = 30.789933034
 )
 
 /**
@@ -400,14 +400,14 @@ func alnorm(x float64, upper bool) float64 {
 		z = -z
 	}
 	var fn_val float64
-	if z > LTONE_a && (!up || z > UTZERO_a) {
+	if z > ltone_a && (!up || z > utzero_a) {
 		fn_val = 0.0
 	} else {
 		y := 0.5 * z * z
-		if z <= CON_a {
-			fn_val = 0.5 - z*(P_a-Q_a*y/(y+A1_a+B1_a/(y+A2_a+B2_a/(y+A3_a))))
+		if z <= con_a {
+			fn_val = 0.5 - z*(p_a-q_a*y/(y+a1_a+b1_a/(y+a2_a+b2_a/(y+a3_a))))
 		} else {
-			fn_val = R_a * math.Exp(-y) / (z + C1_a + D1_a/(z+C2_a+D2_a/(z+C3_a+D3_a/(z+C4_a+D4_a/(z+C5_a+D5_a/(z+C6_a))))))
+			fn_val = r_a * math.Exp(-y) / (z + c1_a + d1_a/(z+c2_a+d2_a/(z+c3_a+d3_a/(z+c4_a+d4_a/(z+c5_a+d5_a/(z+c6_a))))))
 		}
 	}
 	if !up {
